@@ -128,9 +128,12 @@ term.
 Local `sentence-transformers/all-MiniLM-L6-v2` by default: **no API key, no
 network egress**, baked into the Docker image so a cold pod does not download it.
 
+**No API keys are included in this repo, and none are written to disk.** To use
+a hosted provider instead, export your own:
+
 ```bash
 export EMBEDDING_PROVIDER=openai
-export OPENAI_API_KEY=sk-...
+export OPENAI_API_KEY=...
 ```
 
 A collection records which provider built it and **refuses** to be queried by a
