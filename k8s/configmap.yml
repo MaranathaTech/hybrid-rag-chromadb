@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hybrid-rag-config
+  namespace: hybrid-rag
+data:
+  # "local" needs no API key and no network egress. Set to "openai" and supply
+  # a key via the hybrid-rag-secrets Secret to switch providers.
+  EMBEDDING_PROVIDER: "local"
+  LOG_LEVEL: "INFO"

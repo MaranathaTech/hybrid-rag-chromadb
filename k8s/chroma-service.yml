@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: chroma
+  namespace: hybrid-rag
+  labels:
+    app.kubernetes.io/name: chroma
+    app.kubernetes.io/part-of: hybrid-rag
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: chroma
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: http

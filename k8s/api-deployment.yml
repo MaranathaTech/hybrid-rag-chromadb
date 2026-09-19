@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: hybrid-rag
+  labels:
+    app.kubernetes.io/name: api
+    app.kubernetes.io/part-of: hybrid-rag
+spec:
+  # Single replica on purpose: the BM25 index lives in the process, so each
+  # replica would build and hold its own copy. Fine for a demo; see the
+  # README's "Scaling past one replica" note for what changes first.
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: api
+        app.kubernetes.io/part-of: hybrid-rag
+    spec:
+      containers:
+        - name: api
+          image: hybrid-rag:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: CHROMA_HOST
+              value: chroma.hybrid-rag.svc.cluster.local
+            - name: CHROMA_PORT
+              value: "8000"
+            - name: EMBEDDING_PROVIDER
+              valueFrom:
+                configMapKeyRef:
+                  name: hybrid-rag-config
+                  key: EMBEDDING_PROVIDER
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: hybrid-rag-config
+                  key: LOG_LEVEL
+            # Optional: only consulted when EMBEDDING_PROVIDER=openai.
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: hybrid-rag-secrets
+                  key: OPENAI_API_KEY
+                  optional: true
+          # Liveness only checks the process. Readiness checks the corpus is
+          # indexed, so traffic never arrives before the model has loaded and
+          # ingestion has finished.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 10
+            # Generous: the first boot downloads the embedding model, which
+            # can take a couple of minutes on a cold image.
+            failureThreshold: 30
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "2Gi"
+              cpu: "2000m"
